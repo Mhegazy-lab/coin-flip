@@ -1,0 +1,1 @@
+{"version":1,"name":"Coin Flip","description":"A holographic sci-fi coin flip for your glasses. Tap to flip.","appearance":{"theme_color":"#22D3EE","icon":{"src":"../icon-mono.png","type":"monochrome"},"icon_background":{"colors":["#22D3EE","#A855F7","#1E1B4B","#04020F"],"stops":[0.0,0.33,0.66,1.0],"inner_glow_color":"#A5F3FC"}}}
