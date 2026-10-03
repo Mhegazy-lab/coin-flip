@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<meta name="application-name" content="Coin Flip" />
+<meta name="description" content="A holographic sci-fi coin flip for your glasses. Tap to flip." />
+<link rel="icon" type="image/png" href="icon-192.png" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<title>Coin Flip</title>
+<style>
+  :root{
+    --bg:#04020f; --ink:#e8fbff; --muted:#5f7a8c;
+    --cyan:#22d3ee; --mag:#f0f;
+    --line:rgba(34,211,238,.3);
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  html,body{height:100%; overflow:hidden}
+  body{
+    background:radial-gradient(120% 90% at 50% 0%, #0b1030 0%, var(--bg) 65%);
+    color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    display:flex; align-items:center; justify-content:center; min-height:100dvh;
+    -webkit-font-smoothing:antialiased; -webkit-user-select:none; user-select:none;
+  }
+  .app{width:min(480px,100vw - 24px); height:100dvh; max-height:780px; display:flex; flex-direction:column; padding:16px 14px 12px}
+  header{flex:0 0 auto; text-align:center}
+  h1{font-size:19px; letter-spacing:.14em; color:var(--cyan); text-shadow:0 0 18px rgba(34,211,238,.6)}
+  .sub{color:var(--muted); font-size:12px; margin-top:3px; letter-spacing:.08em}
+  .stage{flex:1 1 auto; min-height:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; perspective:900px}
+  .coin{
+    width:min(56vw,220px); height:min(56vw,220px); position:relative;
+    transform-style:preserve-3d; transition:transform 2.1s cubic-bezier(.12,.8,.24,1);
+  }
+  .coin.spinning{filter:drop-shadow(0 0 26px rgba(34,211,238,.75))}
+  .face{
+    position:absolute; inset:0; border-radius:50%;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    border:3px solid;
+  }
+  .face.front{background:radial-gradient(circle at 35% 30%, #0e4a5e, #04121c 70%); border-color:var(--cyan);
+    box-shadow:0 0 30px rgba(34,211,238,.35), inset 0 0 40px rgba(34,211,238,.15)}
+  .face.back{background:radial-gradient(circle at 35% 30%, #4a0e4e, #14041c 70%); border-color:var(--mag);
+    box-shadow:0 0 30px rgba(255,0,255,.3), inset 0 0 40px rgba(255,0,255,.15); transform:rotateY(180deg)}
+  .face .sym{font-size:52px}
+  .face.front .sym{color:var(--cyan); text-shadow:0 0 16px var(--cyan)}
+  .face.back .sym{color:var(--mag); text-shadow:0 0 16px var(--mag)}
+  .face .lbl{font-size:15px; font-weight:900; letter-spacing:.3em}
+  .face.front .lbl{color:var(--cyan)}
+  .face.back .lbl{color:var(--mag)}
+  #result{font-size:34px; font-weight:900; letter-spacing:.22em; min-height:44px; text-align:center}
+  #result.heads{color:var(--cyan); text-shadow:0 0 22px rgba(34,211,238,.8)}
+  #result.tails{color:var(--mag); text-shadow:0 0 22px rgba(255,0,255,.8)}
+  #result.thinking{color:var(--muted); text-shadow:none; font-size:20px; letter-spacing:.3em}
+  .stats{flex:0 0 auto; display:flex; gap:10px; width:100%}
+  .stat{flex:1; border:1px solid var(--line); border-radius:14px; padding:10px 6px; text-align:center; background:rgba(34,211,238,.05)}
+  .stat .n{font-size:24px; font-weight:900; font-variant-numeric:tabular-nums}
+  .stat.h .n{color:var(--cyan)} .stat.t .n{color:var(--mag)}
+  .stat .l{font-size:10.5px; color:var(--muted); letter-spacing:.14em; margin-top:2px}
+  #hist{flex:0 0 auto; display:flex; gap:6px; justify-content:center; min-height:14px; flex-wrap:wrap}
+  #hist span{width:12px; height:12px; border-radius:50%}
+  #hist .h{background:var(--cyan); box-shadow:0 0 8px var(--cyan)}
+  #hist .t{background:var(--mag); box-shadow:0 0 8px var(--mag)}
+  #flipBtn{
+    flex:0 0 auto; width:100%; border:none; border-radius:18px; padding:20px;
+    font-size:21px; font-weight:900; letter-spacing:.18em; cursor:pointer;
+    background:linear-gradient(160deg,#22d3ee,#0e7490); color:#02141a;
+    box-shadow:0 0 26px rgba(34,211,238,.45);
+  }
+  #flipBtn:active{transform:scale(.97)}
+  #flipBtn:disabled{opacity:.55}
+  .row2{flex:0 0 auto; display:flex; justify-content:center}
+  #resetBtn{border:none; background:transparent; color:var(--muted); font-size:13px; font-weight:700; cursor:pointer; padding:8px 16px}
+  button:focus-visible{outline:3px solid var(--cyan); outline-offset:2px}
+</style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <h1>◈ COIN FLIP ◈</h1>
+      <div class="sub">QUANTUM DECISION ENGINE</div>
+    </header>
+    <div class="stage">
+      <div class="coin" id="coin">
+        <div class="face front"><div class="sym">◉</div><div class="lbl">HEADS</div></div>
+        <div class="face back"><div class="sym">✦</div><div class="lbl">TAILS</div></div>
+      </div>
+      <div id="result"></div>
+    </div>
+    <div class="stats">
+      <div class="stat h"><div class="n" id="hCount">0</div><div class="l">HEADS</div></div>
+      <div class="stat"><div class="n" id="streak">–</div><div class="l">STREAK</div></div>
+      <div class="stat t"><div class="n" id="tCount">0</div><div class="l">TAILS</div></div>
+    </div>
+    <div id="hist" style="margin-top:8px"></div>
+    <button id="flipBtn" data-focusable style="margin-top:10px">⚡ FLIP</button>
+    <div class="row2"><button id="resetBtn" data-focusable>reset stats</button></div>
+  </main>
+
+<script>
+(function(){
+"use strict";
+var KEY = "coin-flip-v1";
+function $(id){ return document.getElementById(id); }
+
+function load(){
+  try{
+    var s = JSON.parse(localStorage.getItem(KEY));
+    if(s && typeof s.h === "number") return s;
+  }catch(e){}
+  return {h: 0, t: 0, hist: []};
+}
+var st = load(), rot = 0, flipping = false;
+
+function save(){ localStorage.setItem(KEY, JSON.stringify(st)); }
+function streak(){
+  if(!st.hist.length) return "–";
+  var s = st.hist[st.hist.length-1], n = 0;
+  for(var i = st.hist.length-1; i >= 0 && st.hist[i] === s; i--) n++;
+  return n + "× " + (s === "h" ? "H" : "T");
+}
+function render(){
+  $("hCount").textContent = st.h;
+  $("tCount").textContent = st.t;
+  $("streak").textContent = streak();
+  var h = $("hist"); h.innerHTML = "";
+  st.hist.slice(-12).forEach(function(s){
+    var d = document.createElement("span");
+    d.className = s; h.appendChild(d);
+  });
+}
+
+/* ---------- synth sounds ---------- */
+var actx = null;
+function ac(){ actx = actx || new (window.AudioContext || window.webkitAudioContext)(); return actx; }
+function whir(){
+  try{
+    var c = ac(), o = c.createOscillator(), g = c.createGain(), f = c.createBiquadFilter();
+    o.type = "sawtooth"; f.type = "lowpass"; f.frequency.value = 2400;
+    o.frequency.setValueAtTime(160, c.currentTime);
+    o.frequency.exponentialRampToValueAtTime(1400, c.currentTime + 1.7);
+    g.gain.setValueAtTime(0.0001, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.18, c.currentTime + 0.25);
+    g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + 2.0);
+    o.connect(f); f.connect(g); g.connect(c.destination);
+    o.start(); o.stop(c.currentTime + 2.1);
+  }catch(e){}
+}
+function chime(win){
+  try{
+    var c = ac();
+    [win ? 880 : 660, win ? 1318 : 494].forEach(function(fr, i){
+      var o = c.createOscillator(), g = c.createGain();
+      o.type = "sine"; o.frequency.value = fr;
+      var t0 = c.currentTime + i*0.16;
+      g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.4, t0 + 0.03);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.5);
+      o.connect(g); g.connect(c.destination);
+      o.start(t0); o.stop(t0 + 0.55);
+    });
+  }catch(e){}
+}
+
+/* ---------- flip ---------- */
+function flip(){
+  if(flipping) return;
+  flipping = true;
+  var btn = $("flipBtn"); btn.disabled = true;
+  var coin = $("coin"), res = $("result");
+  var win = Math.random() < 0.5, side = win ? "h" : "t";
+  res.textContent = "SPINNING…";
+  res.className = "thinking";
+  coin.classList.add("spinning");
+  whir();
+  var cur = ((rot % 360) + 360) % 360;      // 0 = heads up, 180 = tails up
+  var want = win ? 0 : 180;
+  var delta = (want - cur + 360) % 360;     // extra half-turn only if the face must change
+  rot += 1800 + delta;
+  // force reflow so the transition re-triggers cleanly
+  void coin.offsetWidth;
+  coin.style.transform = "rotateY(" + rot + "deg)";
+  setTimeout(function(){
+    coin.classList.remove("spinning");
+    if(win){ st.h++; } else { st.t++; }
+    st.hist.push(side);
+    if(st.hist.length > 60) st.hist = st.hist.slice(-60);
+    save(); render();
+    res.textContent = win ? "HEADS" : "TAILS";
+    res.className = win ? "heads" : "tails";
+    chime(win);
+    flipping = false; btn.disabled = false;
+    btn.focus();
+  }, 2150);
+}
+$("flipBtn").addEventListener("click", flip);
+document.addEventListener("keydown", function(e){
+  if((e.key === "Enter" || e.key === " ") && !flipping){
+    var ae = document.activeElement;
+    if(ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA")) return;
+    e.preventDefault(); flip();
+  }
+});
+
+/* ---------- reset (two-tap) ---------- */
+var armed = false, armT = null;
+$("resetBtn").addEventListener("click", function(){
+  if(!armed){
+    armed = true; this.textContent = "tap again to confirm";
+    var self = this;
+    armT = setTimeout(function(){ armed = false; self.textContent = "reset stats"; }, 4000);
+  }else{
+    clearTimeout(armT); armed = false; this.textContent = "reset stats";
+    st = {h: 0, t: 0, hist: []}; save(); render();
+    $("result").textContent = ""; $("result").className = "";
+  }
+});
+
+render();
+$("flipBtn").focus();
+})();
+</script>
+</body>
+</html>
